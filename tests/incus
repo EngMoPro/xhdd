@@ -3,7 +3,7 @@ set -euo pipefail
 set -x
 
 INCUS_HOST=local
-INCUS_INSTANCE_NAME=whdd-test
+INCUS_INSTANCE_NAME=xhdd-test
 
 incus rm -f "$INCUS_HOST:$INCUS_INSTANCE_NAME" || true
 incus launch --vm images:debian/12 "$INCUS_HOST:$INCUS_INSTANCE_NAME"
@@ -15,7 +15,7 @@ while ! incus list --format json "$INCUS_HOST:$INCUS_INSTANCE_NAME" | jq --raw-o
 incus exec "$INCUS_HOST:$INCUS_INSTANCE_NAME" -- bash -l -euo pipefail <<EOF
 apt install -y git
 git clone https://github.com/whdd/whdd
-cd whdd
+cd xhdd
 ./build.sh
-[[ -x ./whdd ]]
+[[ -x ./xhdd ]]
 EOF

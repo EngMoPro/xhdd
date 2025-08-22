@@ -10,14 +10,14 @@ fi
 test "$revision" || revision=$(cd "$1" &&
   git log -1 --pretty=format:"git-%cd-%h" --date=short 2> /dev/null)
 
-# Snapshots from gitweb are in a directory called whdd-hhhhhhh or
-# whdd-HEAD-hhhhhhh.
+# Snapshots from gitweb are in a directory called xhdd-hhhhhhh or
+# xhdd-HEAD-hhhhhhh.
 if [ -z "$revision" ]; then
   srcdir=$(cd "$1" && pwd)
   case "$srcdir" in
-    */whdd-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+    */xhdd-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
       git_hash="${srcdir##*-}";;
-    */whdd-HEAD-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
+    */xhdd-HEAD-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])
       git_hash="${srcdir##*-}";;
   esac
 fi
@@ -39,7 +39,7 @@ if [ -z "$2" ]; then
     exit
 fi
 
-NEW_REVISION="#define WHDD_VERSION \"$version\""
+NEW_REVISION="#define xhdd_VERSION \"$version\""
 OLD_REVISION=$(cat version.h 2> /dev/null)
 
 # Update version.h only on revision changes to avoid spurious rebuilds

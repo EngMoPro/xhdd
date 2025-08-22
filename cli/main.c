@@ -42,8 +42,8 @@ static int ask_option_value(DC_OptionSetting *setting, DC_ProcedureOption *optio
 }
 
 int main() {
-    printf(WHDD_ABOUT);
-    printf("\nATTENTION! whdd-cli utility is purposed for development debugging, and as a fallback if whdd utility somehow fails to work. In other cases, consider using whdd utility, which should provide better usage experience.\n");
+    printf(XHDD_ABOUT);
+    printf("\nATTENTION! XHDD-cli utility is purposed for development debugging, and as a fallback if XHDD utility somehow fails to work. In other cases, consider using XHDD utility, which should provide better usage experience.\n");
     int r;
     char *char_ret;
     // init libdevcheck

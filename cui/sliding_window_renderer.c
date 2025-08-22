@@ -184,10 +184,10 @@ static void render_update_stats(SlidingWindow *priv) {
 |                                                                                |
 |                                                            Ctrl+C to abort     |
 |                                                                                |
+|                                                               XHDD @EngMoPro   |
 |                                                                                |
 |                                                                                |
-|                                                                                |
-| WHDD rev. X.X-X-gXXXXXXX                                                       |
+| XHDD rev. @EngMoPro                                                            |
 +--------------------------------------------------------------------------------+
 */
 static int Open(DC_RendererCtx *ctx) {

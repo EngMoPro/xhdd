@@ -35,7 +35,7 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
     char *config_suggested_value;
     char config_search_command[200];
     snprintf(config_search_command, sizeof(config_search_command),
-            "grep ^%s.%s= ~/.whddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
+            "grep ^%s.%s= ~/.xhddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
     config_supplied_value = cmd_output(config_search_command);
     if (config_supplied_value) {
         setting->value = config_supplied_value;
@@ -43,7 +43,7 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
     }
 
     snprintf(config_search_command, sizeof(config_search_command),
-            "grep ^%s.%s.suggest= ~/.whddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
+            "grep ^%s.%s.suggest= ~/.xhddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
     config_suggested_value = cmd_output(config_search_command);
     if (config_suggested_value)
         suggested_value = config_suggested_value;

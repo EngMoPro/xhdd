@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 2.8.4)
 include(ExternalProject)
-project(whdd)
+project(XHDD@EngMOPro)
 
 option(STATIC "Build static binaries" OFF)
-option(CLI "Build whdd-cli" OFF)
+option(CLI "Build xhdd-cli" OFF)
 
 set(CMAKE_C_FLAGS "-std=gnu99 -D_GNU_SOURCE -pthread -Wall -Wextra -Wno-missing-field-initializers ${CFLAGS}")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS}")
@@ -55,22 +55,22 @@ add_custom_target(version ALL)
 add_custom_command(TARGET version COMMAND ${CMAKE_SOURCE_DIR}/version.sh ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/version.h)
 
 if (${CLI})
-    add_executable(whdd-cli
+    add_executable(xhdd-cli
         ${CLI_SRCS}
         ${LIBDEVCHECK_SRCS}
         )
-    add_dependencies(whdd-cli version)
-    target_link_libraries(whdd-cli rt pthread)
-    install(TARGETS whdd-cli DESTINATION sbin)
+    add_dependencies(xhdd-cli version)
+    target_link_libraries(xhdd-cli rt pthread)
+    install(TARGETS xhdd-cli DESTINATION sbin)
 endif(${CLI})
 
-add_executable(whdd
+add_executable(xhdd
     ${CUI_SRCS}
     ${LIBDEVCHECK_SRCS}
     )
 
-add_dependencies(whdd version)
-target_link_libraries(whdd rt pthread)
+add_dependencies(xhdd version)
+target_link_libraries(xhdd rt pthread)
 
 if (${STATIC})
 
@@ -86,7 +86,7 @@ if (${STATIC})
         )
 
     add_subdirectory(external/dialog)
-    add_dependencies(whdd dialog)
+    add_dependencies(xhdd dialog)
 
     add_library(ncurses_lib STATIC IMPORTED)
     set_property(TARGET ncurses_lib PROPERTY IMPORTED_LOCATION "${NCURSES_DIR}/lib/libncursesw.a")
@@ -97,12 +97,12 @@ if (${STATIC})
     add_library(dialog_lib STATIC IMPORTED)
     set_property(TARGET dialog_lib PROPERTY IMPORTED_LOCATION "${DIALOG_DIR}/libdialog.a")
 
-    target_link_libraries(whdd dialog_lib)
-    target_link_libraries(whdd menu_lib)
-    target_link_libraries(whdd ncurses_lib)
-    target_link_libraries(whdd tinfo_lib)
-    target_link_libraries(whdd dl)
-    target_link_libraries(whdd m)
+    target_link_libraries(xhdd dialog_lib)
+    target_link_libraries(xhdd menu_lib)
+    target_link_libraries(xhdd ncurses_lib)
+    target_link_libraries(xhdd tinfo_lib)
+    target_link_libraries(xhdd dl)
+    target_link_libraries(xhdd m)
 
 else (${STATIC})
 
@@ -121,20 +121,20 @@ else (${STATIC})
     endif(NOT (MENUW_LIBRARY AND NCURSESW_LIBRARY))
 
     if (TINFO_LIBRARY)
-        target_link_libraries(whdd ${TINFO_LIBRARY})
+        target_link_libraries(xhdd ${TINFO_LIBRARY})
     endif (TINFO_LIBRARY)
 
-    target_link_libraries(whdd
+    target_link_libraries(xhdd
         ${DIALOG_LIBRARIES} ${MENUW_LIBRARY} ${NCURSESW_LIBRARY} rt pthread)
 
-    install(TARGETS whdd DESTINATION sbin)
+    install(TARGETS xhdd DESTINATION sbin)
 
     # Packaging stuff
     # 'make package_source' to make tarball
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "WHDD is a diagnostic and recovery tool for block devices.")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "XHDD is a diagnostic and recovery tool for block devices.")
     set(CPACK_PACKAGE_VENDOR "Andrey Utkin <andrey.od.utkin@gmail.com>")
     set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README")
-    set(CPACK_PACKAGE_VERSION ${WHDD_VERSION})
+    set(CPACK_PACKAGE_VERSION ${xhdd_VERSION})
     #set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
     set(CPACK_SOURCE_PACKAGE_FILE_NAME
         "${CMAKE_PROJECT_NAME}-${CPACK_PACKAGE_VERSION}")

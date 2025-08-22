@@ -8,5 +8,5 @@ To install, type
 
 sudo make install
 
-It will install executable `whdd`.'
+It will install executable `xhdd`.'
 

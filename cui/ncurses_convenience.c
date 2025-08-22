@@ -12,7 +12,7 @@ void clear_body(void) {
 
     WINDOW *footer = subwin(stdscr, 1, COLS, LINES-1, 0);
     wbkgd(footer, COLOR_PAIR(MY_COLOR_WHITE_ON_BLUE));
-    wprintw(footer, " XHDD rev. %s", XHDD_VERSION);
+    wprintw(footer, " XHDD rev.4.0 @EngMoPro");
     wrefresh(footer);
     delwin(footer);
 }

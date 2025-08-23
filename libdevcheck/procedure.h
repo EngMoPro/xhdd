@@ -9,6 +9,8 @@
 #define DC_PROC_FLAG_INVASIVE 1
 #define DC_PROC_FLAG_REQUIRES_ATA 2
 
+extern DC_Procedure erase_procedure;
+
 enum Api {
     Api_eAta,
     Api_ePosix,

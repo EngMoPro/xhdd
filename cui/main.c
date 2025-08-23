@@ -20,11 +20,14 @@
 #include "render.h"
 #include "ui_mutual.h"
 
+// Forward declaration
+void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
+void register_procedures(void);  // Register erase and other procedures
+
 static int global_init(void);
 static void global_fini(void);
 static DC_Dev *menu_choose_device(DC_DevList *devlist);
 static DC_Procedure *menu_choose_procedure(DC_Dev *dev);
-void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl);
 
 static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_ProcedureOption *option) {
     int r;
@@ -34,6 +37,7 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
     char *config_supplied_value;
     char *config_suggested_value;
     char config_search_command[200];
+
     snprintf(config_search_command, sizeof(config_search_command),
             "grep ^%s.%s= ~/.xhddrc 2>/dev/null | awk -F= '{print $2}' | tr -d '\\n'", act->name, option->name);
     config_supplied_value = cmd_output(config_search_command);
@@ -56,37 +60,34 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
             param_type_str = "string";
             break;
     }
+
     char prompt[500];
     snprintf(prompt, sizeof(prompt), "Please enter %s parameter: %s (%s)",
             param_type_str, option->name, option->help);
 
-    dialog_vars.default_button = -1;  // Workaround for surprisingly unfocused input field on old libdialog
+    dialog_vars.default_button = -1;  // Workaround
     dialog_vars.input_result = NULL;
 
     if (option->choices) {
         int nb_choices = 0;
-        // A quasi-table form which dialog(3) accepts:
-        // dialog_checklist... items: is an array of strings which is viewed... as a list of rows `tag` `item` `status`
-        const char **choices_for_dialog = NULL;
-        //for (const char * choice = option->choices[0]; choice; choice++) {
         const char * choice;
+        const char **choices_for_dialog = NULL;
         int items_table_cols = 2;
-        assert(dialog_vars.no_items == true); // otherwise one more quasi-column "item"
-        assert(dialog_vars.item_help == false); // otherwise one more quasi-column "help" which goes last
         for (nb_choices = 0; choice = option->choices[nb_choices]; nb_choices++) {
             choices_for_dialog = reallocarray(choices_for_dialog, items_table_cols * (nb_choices + 1), sizeof(char*));
             choices_for_dialog[items_table_cols * nb_choices + 0] = choice;
-            choices_for_dialog[items_table_cols * nb_choices + 1] = !strcmp(choice, suggested_value)  ? "on" : "off";
+            choices_for_dialog[items_table_cols * nb_choices + 1] = !strcmp(choice, suggested_value) ? "on" : "off";
         }
-        r = dialog_checklist("Input box", prompt, /*height*/0, /*width*/0, /*list_height*/0, nb_choices, /*char **items*/(char **)choices_for_dialog, /*flag*/FLAG_RADIO);
+        r = dialog_checklist("Input box", prompt, 0, 0, 0, nb_choices, (char **)choices_for_dialog, FLAG_RADIO);
     } else {
         r = dialog_inputbox("Input box", prompt, 0, 0, suggested_value, 0);
     }
+
     if (r != 0) {
         dialog_msgbox("Info", "Action cancelled", 0, 0, 1);
         return 1;
     }
-    // Wow, libdialog is awesomely sane and brilliantly documented lib, i fuckin love it
+
     snprintf(entered_value, sizeof(entered_value), "%s", dialog_vars.input_result);
     if (entered_value[0] == '\0' || entered_value[0] == '\n')
         snprintf(entered_value, sizeof(entered_value), "%s", suggested_value);
@@ -97,70 +98,66 @@ static int ask_option_value(DC_Procedure *act, DC_OptionSetting *setting, DC_Pro
 
 int main() {
     int r;
+
     r = global_init();
     if (r) {
         fprintf(stderr, "init fail\n");
         return r;
     }
-    // get list of devices
+
+    // Register all procedures including erase
+    register_procedures();
+
+    // Get list of devices
     DC_DevList *devlist = dc_dev_list();
     assert(devlist);
 
     while (1) {
-        // draw menu of device choice
+        // Draw menu of device choice
         DC_Dev *chosen_dev = menu_choose_device(devlist);
-        if (!chosen_dev) {
-            break;
-        }
-        // draw procedures menu
+        if (!chosen_dev) break;
+
+        // Draw procedures menu
         DC_Procedure *act = menu_choose_procedure(chosen_dev);
-        if (!act)
-            continue;
+        if (!act) continue;
+
         if (act->flags & DC_PROC_FLAG_INVASIVE) {
             char *ask;
-            r = asprintf(&ask, "This operation is invasive, i.e. it may make your data unreachable or even destroy it completely. Are you sure you want to proceed it on %s (%s)?",
+            r = asprintf(&ask, "This operation is invasive and may destroy data. Proceed on %s (%s)?",
                     chosen_dev->dev_fs_name, chosen_dev->model_str);
             assert(r != -1);
             dialog_vars.default_button = 1;  // Focus on "No"
             r = dialog_yesno("Confirmation", ask, 0, 0);
-            // Yes = 0 (FALSE), No = 1, Escape = -1
             free(ask);
-            if (/* No */ r)
-                continue;
+            if (r) continue;
+
             if (chosen_dev->mounted) {
-                dialog_vars.default_button = 1;  // Focus on "No"
-                r = dialog_yesno("Confirmation", "This disk is mounted. Are you really sure you want to proceed?", 0, 0);
-                if (r)
-                    continue;
+                dialog_vars.default_button = 1;
+                r = dialog_yesno("Confirmation", "This disk is mounted. Are you really sure?", 0, 0);
+                if (r) continue;
             }
         }
+
         DC_OptionSetting *option_set = calloc(act->options_num + 1, sizeof(DC_OptionSetting));
-        int i;
-        r = 0;
-        for (i = 0; i < act->options_num; i++) {
+        for (int i = 0; i < act->options_num; i++) {
             option_set[i].name = act->options[i].name;
             r = act->suggest_default_value(chosen_dev, &option_set[i]);
-            if (r) {
-                dc_log(DC_LOG_ERROR, "Failed to get default value suggestion on '%s'", option_set[i].name);
-                break;
-            }
+            if (r) break;
             r = ask_option_value(act, &option_set[i], &act->options[i]);
-            if (r)
-                break;
+            if (r) break;
         }
-        if (r)
-            continue;
-        // Show relaxing banner when copying with journal. Copy journal processing takes some time.
+        if (r) continue;
+
         if (!strcmp(act->name, "copy")) {
             int uses_journal = 0;
-            for (i = 0; i < act->options_num; i++) {
+            for (int i = 0; i < act->options_num; i++) {
                 if (!strcmp(option_set[i].name, "use_journal")) {
                     uses_journal = 1;
                     break;
                 }
             }
             if (uses_journal)
-                dialog_msgbox("Info", "Please wait while operation journal is processed", 0, 0, 0 /* non-pausing */);
+                dialog_msgbox("Info", "Please wait while operation journal is processed", 0, 0, 0);
         }
 
         clear_body();
@@ -171,22 +168,17 @@ int main() {
             dialog_msgbox("Error", "Procedure init fail", 0, 0, 1);
             continue;
         }
-        if (!act->perform)
-            continue;
-        DC_Renderer *renderer;
-        if (!strcmp(act->name, "copy"))
-            renderer = dc_find_renderer("whole_space");
-        else
-            renderer = dc_find_renderer("sliding_window");
+        if (!act->perform) continue;
+
+        DC_Renderer *renderer = !strcmp(act->name, "copy") ? dc_find_renderer("whole_space") : dc_find_renderer("sliding_window");
         render_procedure(actctx, renderer);
-    } // while(1)
+    }
 
     return 0;
 }
 
 static int global_init(void) {
     int r;
-    // TODO check all retcodes
     setlocale(LC_ALL, "");
     initscr();
     init_dialog(stdin, stdout);
@@ -200,12 +192,13 @@ static int global_init(void) {
     keypad(stdscr, TRUE);
 
     clear_body();
-    // init libdevcheck
+
     r = dc_init();
     assert(!r);
     RENDERER_REGISTER(sliding_window);
     RENDERER_REGISTER(whole_space);
     dc_log_set_callback(log_cb, NULL);
+
     r = atexit(global_fini);
     assert(r == 0);
     return 0;
@@ -222,9 +215,9 @@ static DC_Dev *menu_choose_device(DC_DevList *devlist) {
         dialog_msgbox("Info", "No devices found", 0, 0, 1);
         return NULL;
     }
+
     char *items[2 * devs_num];
-    int i;
-    for (i = 0; i < devs_num; i++) {
+    for (int i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
         char dev_descr_buf[80];
         ui_dev_descr_format(dev_descr_buf, sizeof(dev_descr_buf), dev);
@@ -236,14 +229,15 @@ static DC_Dev *menu_choose_device(DC_DevList *devlist) {
     dialog_vars.no_items = 0;
     dialog_vars.item_help = 0;
     dialog_vars.input_result = NULL;
-    dialog_vars.default_button = 0;  // Focus on "OK"
+    dialog_vars.default_button = 0;
     int ret = dialog_menu("Choose device", "", 0, 0, 0, devs_num, items);
-    for (i = 0; i < devs_num; i++)
+
+    for (int i = 0; i < devs_num; i++)
         free(items[2*i+1]);
 
-    if (ret != 0)
-        return NULL;
-    for (i = 0; i < devs_num; i++) {
+    if (ret != 0) return NULL;
+
+    for (int i = 0; i < devs_num; i++) {
         DC_Dev *dev = dc_dev_list_get_entry(devlist, i);
         if (!strcmp(dev->dev_fs_name, dialog_vars.input_result))
             return dev;
@@ -259,6 +253,7 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
     DC_Procedure *procedures[nb_procedures];
     int nb_items = 0;
     DC_Procedure *procedure = NULL;
+
     while ((procedure = dc_get_next_procedure(procedure))) {
         if (!dev->ata_capable && (procedure->flags & DC_PROC_FLAG_REQUIRES_ATA))
             continue;
@@ -272,13 +267,14 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
         dialog_vars.no_items = 1;
         dialog_vars.item_help = 0;
         dialog_vars.input_result = NULL;
-        dialog_vars.default_button = 0;  // Focus on "OK"
+        dialog_vars.default_button = 0;
         dialog_vars.extra_button = 1;
         dialog_vars.extra_label = "Help";
-        int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_items, (/* should be const */char**)items);
+        int ret = dialog_menu("Choose procedure", "", 0, 0, 0, nb_items, (char**)items);
         dialog_vars.extra_button = 0;
+
         if ((ret != DLG_EXIT_OK) && (ret != DLG_EXIT_EXTRA))
-            return NULL;  // User quit dialog, exit
+            return NULL;
 
         procedure = NULL;
         for (int i = 0; i < nb_items; i++)
@@ -295,8 +291,6 @@ static DC_Procedure *menu_choose_procedure(DC_Dev *dev) {
         assert(ret == DLG_EXIT_OK);
         return procedure;
     }
-    assert(0);  // Never reached
-    return NULL;
 }
 
 void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {
@@ -306,3 +300,4 @@ void log_cb(void *priv, enum DC_LogLevel level, const char* fmt, va_list vl) {
     dialog_msgbox(log_level_name(level), msg, 0, 0, 1);
     free(msg);
 }
+

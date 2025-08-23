@@ -5,7 +5,12 @@
 #include <stdio.h>
 #include "utils.h"
 #include "procedure.h"
+#include "erase.h"  // include erase procedure
 
+
+
+
+// Register a procedure into the global list
 int dc_procedure_register(DC_Procedure *procedure) {
     procedure->next = dc_ctx_global->procedure_list;
     dc_ctx_global->procedure_list = procedure;
@@ -42,10 +47,10 @@ DC_Procedure *dc_get_procedure_by_index(int index) {
     return entry;
 }
 
+// Open a procedure context
 int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ctx_arg, DC_OptionSetting options[]) {
     DC_ProcedureCtx *ctx = calloc(1, sizeof(*ctx));
-    int i;
-    int ret;
+    int i, ret;
     if (!ctx)
         goto fail_ctx;
 
@@ -68,12 +73,12 @@ int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ct
                 break;
         }
     }
+
     if (options) {
         int arg_i;
         for (arg_i = 0; options[arg_i].name; arg_i++) {
             for (i = 0; procedure->options[i].name; i++) {
                 DC_ProcedureOption *opt = &procedure->options[i];
-                // fprintf(stderr, "looking at argument '%s' and defined option '%s'\n", options[arg_i].name, opt->name);
                 if (strcmp(options[arg_i].name, opt->name))
                     continue;
                 switch (opt->type) {
@@ -89,24 +94,27 @@ int dc_procedure_open(DC_Procedure *procedure, DC_Dev *dev, DC_ProcedureCtx **ct
             }
         }
     }
+
     ctx->dev = dev;
     ctx->procedure = procedure;
     *ctx_arg = ctx;
     return procedure->open(ctx);
 
 fail_priv:
+    free(ctx->priv);
     free(ctx);
-    // TODO Free option strings buffers
 fail_ctx:
     return 1;
 }
 
+// Close a procedure context
 void dc_procedure_close(DC_ProcedureCtx *ctx) {
     ctx->procedure->close(ctx);
     free(ctx->priv);
     free(ctx);
 }
 
+// Perform loop for a procedure
 int dc_procedure_perform_loop(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback, void *callback_priv) {
     int r;
     int ret = 0;
@@ -144,17 +152,14 @@ void *dc_procedure_thread_proc(void *packed_args) {
 }
 
 int dc_procedure_perform_loop_detached(DC_ProcedureCtx *ctx, ProcedureDetachedLoopCB callback,
-        void *callback_priv, pthread_t *tid
-        ) {
+        void *callback_priv, pthread_t *tid) {
     int r;
     struct dc_procedure_thread_args_pack *args = calloc(1, sizeof(*args));
-
     if (!args)
         return 1;
     args->ctx = ctx;
     args->callback = callback;
     args->callback_priv = callback_priv;
-
     r = pthread_create(tid, NULL, dc_procedure_thread_proc, args);
     if (r)
         return r;
@@ -172,3 +177,13 @@ void _dc_proc_time_post(DC_ProcedureCtx *ctx) {
     ctx->report.blk_access_time = (ctx->time_post.tv_sec - ctx->time_pre.tv_sec) * 1000000 +
         (ctx->time_post.tv_nsec - ctx->time_pre.tv_nsec) / 1000;
 }
+
+// ==================== Register erase procedure ====================
+void register_procedures() {
+    // register other procedures here first
+    // ...
+
+    // Register erase procedure
+    dc_procedure_register(&erase_procedure);
+}
+

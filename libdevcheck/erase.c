@@ -7,7 +7,7 @@
 #include <errno.h>
 #include "procedure.h"
 #include "device.h"
-#include "ata.h"  // if you need ATA commands
+#include "ata.h"
 
 #define SECTORS_AT_ONCE 256
 #define BLK_SIZE (SECTORS_AT_ONCE * 512)
@@ -58,7 +58,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
                                 (size_t)(priv->end_lba - priv->current_lba) :
                                 SECTORS_AT_ONCE;
 
-    // If no sectors left, return done
     if (sectors_to_process == 0)
         return 1;
 
@@ -66,11 +65,11 @@ static int Perform(DC_ProcedureCtx *ctx) {
     ctx->report.sectors_processed = sectors_to_process;
     ctx->report.blk_status = DC_BlockStatus_eOk;
 
-    // Check current sectors with read
+    // Read sectors to check
     ssize_t r = pread(priv->fd, priv->buf, sectors_to_process * 512, priv->current_lba * 512);
     if (r != (ssize_t)(sectors_to_process * 512)) {
-        // slow/bad sector detected
-        ctx->report.blk_status = DC_BlockStatus_eError;
+        // Mark slow/bad sectors
+        ctx->report.blk_status = DC_BlockStatus_eWarning;
 
         // Write zeros to erase slow/bad sectors
         memset(priv->buf, 0, sectors_to_process * 512);

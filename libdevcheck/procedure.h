@@ -69,6 +69,7 @@ typedef enum {
     DC_BlockStatus_eIdnf,
     DC_BlockStatus_eAbrt,
     DC_BlockStatus_eAmnf,
+    DC_BlockStatus_eWarning, // added for slow/bad sectors
 } DC_BlockStatus;
 
 typedef struct dc_block_report {
@@ -83,10 +84,8 @@ struct dc_procedure_ctx {
     DC_Dev *dev; // device which is operated
     DC_Procedure *procedure;
     uint64_t blk_size;  // set by procedure on .open()
-    //uint64_t current_lba;  // updated by procedure on .perform()
     DC_Rational progress;  // updated by procedure on .perform()
     int interrupt; // if set to 1 by frontend, then looped processing must stop
-    // TODO interrupt is now meant for loop, think of interrupting blocking perform operation
     int finished; // if 1, then looped processing has finished
     DC_BlockReport report; // updated by procedure on .perform()
     void *user_priv;  // pointer to user interface private data
@@ -108,3 +107,4 @@ void _dc_proc_time_pre(DC_ProcedureCtx *ctx);
 void _dc_proc_time_post(DC_ProcedureCtx *ctx);
 
 #endif // PROCEDURE_H
+

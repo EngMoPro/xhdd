@@ -25,3 +25,4 @@ void prepare_ata_command(AtaCommand *cmd_buffer, int cmd, uint64_t lba, int size
     cmd_buffer->task.data_phase = TASKFILE_NO_DATA;
     cmd_buffer->task.req_cmd = IDE_DRIVE_TASK_NO_DATA;
 }
+

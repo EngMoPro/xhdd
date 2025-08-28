@@ -5,11 +5,14 @@
 #include "device.h"
 #include <pthread.h>
 #include <stddef.h>
+#include <stdint.h>   // for uint64_t
+#include <time.h>     // for struct timespec
 
 #define DC_PROC_FLAG_INVASIVE 1
 #define DC_PROC_FLAG_REQUIRES_ATA 2
 
 extern DC_Procedure erase_procedure;
+extern DC_Procedure run_script_procedure;  // <-- add this
 
 enum Api {
     Api_eAta,
@@ -75,7 +78,7 @@ typedef enum {
 typedef struct dc_block_report {
     uint64_t lba;  // block start lba
     uint64_t sectors_processed;
-    uint64_t blk_access_time; // in mcs
+    uint64_t blk_access_time; // in μs
     DC_BlockStatus blk_status;
 } DC_BlockReport;
 

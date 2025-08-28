@@ -37,7 +37,8 @@ set(LIBDEVCHECK_SRCS
     libdevcheck/render.c
     libdevcheck/hpa_set.c
     libdevcheck/smart_show.c
-    libdevcheck/erase.c   
+    libdevcheck/erase.c  
+    libdevcheck/run_script.c  
     )
 
 include_directories(

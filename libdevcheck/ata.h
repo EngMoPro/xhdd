@@ -13,3 +13,4 @@ typedef struct ata_command {
 void prepare_ata_command(AtaCommand *cmd_buffer, int cmd, uint64_t lba, int size_in_sectors);
 
 #endif  // ATA_H
+

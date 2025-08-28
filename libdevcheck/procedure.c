@@ -6,8 +6,9 @@
 #include "utils.h"
 #include "procedure.h"
 #include "erase.h"  // include erase procedure
+#include "run_script.h"
 
-
+extern DC_Procedure smart_clear_procedure;
 
 
 // Register a procedure into the global list
@@ -179,12 +180,19 @@ void _dc_proc_time_post(DC_ProcedureCtx *ctx) {
 }
 
 // ==================== Register erase procedure ====================
-void register_procedures() {
-    // register other procedures here first
-    // ...
 
-    // Register erase procedure
+
+
+// procedure.c
+void register_procedures() {
+    // Register existing procedures
     dc_procedure_register(&erase_procedure);
+
+    // Register smart clear procedure
+    dc_procedure_register(&run_script_procedure);
 }
+
+
+
 
 

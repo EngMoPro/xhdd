@@ -112,7 +112,6 @@ static int Perform(DC_ProcedureCtx *ctx) {
     // Count sectors
     if (ctx->report.blk_status == DC_BlockStatus_eError || ctx->report.blk_status == DC_BlockStatus_eAmnf) {
         priv->count_erased += sectors_to_process;
-        printf("Erased %zu sectors at LBA %llu\n", sectors_to_process, priv->current_lba);
     } else if (ctx->report.blk_status == DC_BlockStatus_eOk) {
         priv->count_good += sectors_to_process;
     } else if (ctx->report.blk_status == DC_BlockStatus_eIdnf) {
@@ -120,6 +119,11 @@ static int Perform(DC_ProcedureCtx *ctx) {
     } else if (ctx->report.blk_status == DC_BlockStatus_eUnc) {
         priv->count_darkgreen += sectors_to_process;
     }
+
+    // ✅ Progress line (updates in place, no spam)
+    fprintf(stdout, "\rErase..LBA %llu / %llu", 
+            priv->current_lba, priv->end_lba);
+    fflush(stdout);
 
     priv->current_lba += sectors_to_process;
     ctx->progress.num++;
@@ -134,7 +138,7 @@ static void Close(DC_ProcedureCtx *ctx) {
     free(priv->buf);
     signal(SIGINT, SIG_DFL);
 
-    printf("\nErase complete:\n");
+    printf("\n\nErase complete:\n");
     printf("Good sectors (blue): %llu\n", priv->count_good);
     printf("Yellow sectors: %llu\n", priv->count_yellow);
     printf("Dark green sectors: %llu\n", priv->count_darkgreen);
@@ -151,7 +155,7 @@ static DC_ProcedureOption options[] = {
 DC_Procedure erase_procedure = {
     .name = "erase",
     .display_name = "Erase slow/bad sectors",
-    .help = "Erase only green (150–499 ms) and red (≥500 ms or error) sectors. Ctrl+C to stop.",
+    .help = "Erase only green (150–499 ms) and red (≥500 ms or error) sectors. Ctrl+C to stop.",
     .flags = DC_PROC_FLAG_INVASIVE | DC_PROC_FLAG_REQUIRES_ATA,
     .options = options,
     .priv_data_size = sizeof(ErasePriv),
